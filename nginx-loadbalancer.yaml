@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+# Service created with the help of Medium: 
+# Kubernetes Services: https://medium.com/@a-dem/kubernetes-services-80548c89f11ehttps://medium.com/@a-dem/kubernetes-services-80548c89f11e
+# and the Udemy course: Kubernetes Certified Application Developer (CKAD) with Tests
+metadata:
+  labels:
+    app: backend
+  name: nginx-backend-deploy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+# This service makes the webservice accessible for cluster nodes on 
+# clusterIp and port 80.
+metadata:
+  labels:
+    app: backend
+  name: backend
+spec:
+  ports:
+  # HTTP wil be available on clusterip address and port 80
+  - name: backend-clusterip-svc
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: backend
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+# This service makes the webservice accessible from outside the cluster
+# using the IP address of any node in the cluster.
+metadata:
+  name: backend-nodeport-svc
+spec:
+  selector:
+    app: backend
+  ports:
+  - name: backend-svc
+    port: 80
+    targetPort: 80
+    nodePort: 30180
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-loadbalancer-service
+spec:
+  selector:
+    app: backend
+  ports:
+  - name: http
+    # Make service public available on port 8080, since access to port 80
+    # is blocked by Windows.
+    port: 8080
+    targetPort: 80
+  type: LoadBalancer
